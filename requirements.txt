@@ -1,0 +1,3 @@
+# Use local for development only, not for deployment.
+homeassistant
+python-can
