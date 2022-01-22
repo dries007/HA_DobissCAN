@@ -1,0 +1,15 @@
+{
+  "domain": "dobiss_can",
+  "name": "DobissCAN",
+  "documentation": "https://github.com/dries007/HA_DobissCan",
+  "issue_tracker": "https://github.com/dries007/HA_DobissCan/issues",
+  "dependencies": [],
+  "codeowners": [
+    "dries007"
+  ],
+  "requirements": [
+    "python-can~=3.3"
+  ],
+  "iot_class": "local_push",
+  "version": "0.1.0"
+}
