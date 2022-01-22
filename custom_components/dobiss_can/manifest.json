@@ -5,7 +5,7 @@
   "issue_tracker": "https://github.com/dries007/HA_DobissCan/issues",
   "dependencies": [],
   "codeowners": [
-    "dries007"
+    "@dries007"
   ],
   "requirements": [
     "python-can~=3.3"
