@@ -27,13 +27,11 @@ You must set up your Pi's OS to configure the bus correctly. As CAN is a network
 
 ```
 # ip link set can0 type can bitrate 125000
-# ifconfig can0 txqueuelen 1000
-# ifconfig can0 up
+# ip link set can0 up
 ```
 
-These steps must be run every reboot, so I suggest adding them to a script that runs at startup time.
-
-<!-- TODO: describe script --> 
+These steps must be run every reboot, so I suggest adding them to a script that runs at startup time. 
+If you are using Home Assistant OS, you can use [this addon](https://github.com/dries007/HA_EnableCAN).
 
 The Dobiss protocol is explained more [here](https://gist.github.com/dries007/436fcd0549a52f26137bca942fef771a).
 
@@ -41,4 +39,4 @@ The Dobiss protocol is explained more [here](https://gist.github.com/dries007/43
 
 This is an addon for Home Assistant in the form of a custom component that can be installed via [HACS](https://hacs.xyz/).
 
-
+If you are using a Home Assistant Operating System installation and you are using a CAN hat that requires you add lines to your /boot/config.txt, you may need to [log into the OS](https://developers.home-assistant.io/docs/operating-system/debugging/).

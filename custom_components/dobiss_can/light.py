@@ -7,16 +7,17 @@ systemd-networkd can do this for you, as CAN is a supported network.
 Author: Dries007 - 2021
 Licence: MIT
 """
-import logging
 import asyncio
-from typing import Optional, Any
+import logging
+from typing import Any
 
 import can
-import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
-from homeassistant.core import HomeAssistant
+import voluptuous as vol
 from homeassistant.components.light import LightEntity, PLATFORM_SCHEMA
-from homeassistant.const import CONF_NAME, CONF_HOST, CONF_LIGHTS
+from homeassistant.const import CONF_HOST, CONF_LIGHTS, CONF_NAME
+from homeassistant.core import HomeAssistant
+
 
 _LOGGER = logging.getLogger(__name__)
 _LOGGER.setLevel(logging.DEBUG)
@@ -81,7 +82,7 @@ class DobissLight(LightEntity, can.Listener):
         self._bytes_on: bytes = bytes((self._module, self._relay, 1, 0xFF, 0xFF))
         self._bytes_status: bytes = bytes((self._module, self._relay))
         # Internal state of light
-        self._state: Optional[bool] = None
+        self._is_on: bool = False
         # Internals to do locking & support GET operation
         self._awaiting_update = False
         self._event_update = asyncio.Event()
@@ -89,12 +90,18 @@ class DobissLight(LightEntity, can.Listener):
         self._log = _LOGGER.getChild(self.name)
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     @property
-    def is_on(self):
-        return self._state
+    def is_on(self) -> bool:
+        return self._is_on
+
+    @is_on.setter
+    def is_on(self, value: bool):
+        self._is_on = value
+        # This call makes HA update the internal state after getting an update via CAN.
+        self.hass.async_add_job(self.async_update_ha_state)
 
     @property
     def unique_id(self) -> str:
@@ -109,10 +116,10 @@ class DobissLight(LightEntity, can.Listener):
     async def on_message_received(self, msg):
         # Reply to SET, this we can filter because data contains data from.
         if msg.arbitration_id == 0x0002FF01 and msg.data[0] == self._module and msg.data[1] == self._relay:
-            self._state = msg.data[2] == 1
+            self.is_on = msg.data[2] == 1
         # Reply to GET, this we can only filter by _knowing_ that we are waiting on an update.
         if msg.arbitration_id == 0x01FDFF01 and self._awaiting_update:
-            self._state = msg.data[0] == 1
+            self.is_on = msg.data[0] == 1
             self._event_update.set()
 
     async def async_update(self):

@@ -1,3 +1,4 @@
 # Use local for development only, not for deployment.
-homeassistant
-python-can
+homeassistant~=2021.12
+python-can~=3.3
+voluptuous~=0.12
