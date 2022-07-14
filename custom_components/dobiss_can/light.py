@@ -57,11 +57,11 @@ async def async_setup_platform(hass: HomeAssistant, config, async_add_entities, 
         {"can_id": 0x01FDFF01, "can_mask": 0x1FFFFFFF, "extended": True},  # Reply to GET
     ])
     # Global CAN bus lock, required since the reply to a GET does not include any differentiator.
-    lock = asyncio.Lock(loop=hass.loop)
+    lock = asyncio.Lock()
 
     # All config entries get turned into entities that listen for updates on the bus.
     entities = [DobissLight(bus, o, lock) for o in config[CONF_LIGHTS]]
-    can.Notifier(bus, entities, loop=hass.loop)
+    can.Notifier(bus, entities)
     async_add_entities(entities)
 
     # Success.
