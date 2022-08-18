@@ -4,6 +4,7 @@
   "documentation": "https://github.com/dries007/HA_DobissCan",
   "issue_tracker": "https://github.com/dries007/HA_DobissCan/issues",
   "dependencies": [],
+  "config_flow": true,
   "codeowners": [
     "@dries007"
   ],
@@ -11,5 +12,5 @@
     "python-can~=4.0.0"
   ],
   "iot_class": "local_push",
-  "version": "0.3.0"
+  "version": "0.4.0"
 }

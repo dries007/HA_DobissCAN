@@ -1,0 +1,24 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "interface": "CAN Interface",
+          "channel": "CAN Channel"
+        },
+        "description": "See https://python-can.readthedocs.io/en/4.0.0/configuration.html for more info.",
+        "title": "CAN Bus details"
+      },
+      "light": {
+        "data": {
+          "add_another": "Add another light?",
+          "name": "Name of the light.",
+          "relay": "The relay number, zero indexed!",
+          "module": "The module number, one indexed, normally starts at unit where buttons are plugged in and increments along the CAN cable."
+        },
+        "description": "Add a light, uncheck the box to stop adding.",
+        "title": "Add a light"
+      }
+    }
+  }
+}

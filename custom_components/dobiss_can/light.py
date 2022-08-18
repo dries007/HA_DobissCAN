@@ -12,72 +12,30 @@ import logging
 from typing import Any
 
 import can
-import homeassistant.helpers.config_validation as cv
-import voluptuous as vol
-from homeassistant.components.light import LightEntity, PLATFORM_SCHEMA
+from homeassistant.components.light import LightEntity
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_LIGHTS, CONF_NAME, EVENT_HOMEASSISTANT_STOP
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.typing import DiscoveryInfoType, ConfigType
+
+from .const import *
 
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(DOMAIN)
 _LOGGER.setLevel(logging.DEBUG)
 
-DOMAIN = 'dobiss_can'
 
-CONF_INTERFACE = 'interface'
-CONF_CHANNEL = 'channel'
-CONF_MODULE = 'module'
-CONF_RELAY = 'relay'
+async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
+    data = hass.data[DOMAIN][config_entry.entry_id]
+    _LOGGER.debug('async_setup_entry %r %r', data, config_entry)
 
-# Example:
-"""
-light:
-  - platform: dobiss_can
-    interface: socketcan  # optional
-    channel: can0         # optional
-    lights:
-      - name: WC
-        module: 1
-        relay: 0
-      - name: Bedroom
-        module: 1
-        relay: 1
-"""
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
-    vol.Optional(CONF_INTERFACE, default="socketcan"): cv.string,
-    vol.Optional(CONF_CHANNEL, default="can0"): cv.string,
-    vol.Required(CONF_LIGHTS): vol.All(cv.ensure_list, [vol.Schema({
-        vol.Required(CONF_NAME): cv.string,
-        vol.Required(CONF_MODULE): cv.positive_int,
-        vol.Required(CONF_RELAY): cv.positive_int,
-    })]),
-})
-
-
-async def async_setup_platform(
-    hass: HomeAssistant,
-    config: ConfigType,
-    async_add_entities: AddEntitiesCallback,
-    discovery_info: DiscoveryInfoType | None = None,
-):
     # Load CAN bus. Must be operational already (done by external network tool).
     # Setting bitrate might work, but ideally that should also be set already.
     # We only care about messages related to feedback from a SET command or the reply from a GET command.
-    # todo: ThreadSafeBus?
-    bus = can.Bus(bustype=config[CONF_INTERFACE], channel=config[CONF_CHANNEL], bitrate=125000, receive_own_messages=True, can_filters=[
+    bus = can.Bus(bustype=data[CONF_INTERFACE], channel=data[CONF_CHANNEL], bitrate=125000, receive_own_messages=True, can_filters=[
         {"can_id": 0x0002FF01, "can_mask": 0x1FFFFFFF, "extended": True},  # Reply to SET
         {"can_id": 0x01FDFF01, "can_mask": 0x1FFFFFFF, "extended": True},  # Reply to GET
     ])
-
-    @callback
-    def stop(event):
-        bus.shutdown()
-
-    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, stop)
-
-    loop = asyncio.get_running_loop()
 
     # Global CAN bus lock, required since the reply to a GET does not include any differentiator.
     # This means we must lock, then send out a GET request.
@@ -85,14 +43,16 @@ async def async_setup_platform(
     # I don't like this, it smells, but it works and IDK how to do it better.
     lock = asyncio.Lock()
 
-    # All config entries get turned into entities that listen for updates on the bus.
-    entities = [DobissLight(bus, o, lock) for o in config[CONF_LIGHTS]]
-    # can.Listener
-    can.Notifier(bus, (e.on_can_message_received for e in entities), loop=loop)
+    entities = [DobissLight(bus, e, lock, config_entry.entry_id) for e in data[CONF_LIGHTS]]
+    notifier = can.Notifier(bus, [e.on_can_message_received for e in entities], loop=asyncio.get_running_loop())
     async_add_entities(entities)
 
-    # Success.
-    return True
+    @callback
+    def stop(event):
+        notifier.stop()
+        bus.shutdown()
+
+    hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, stop)
 
 
 # noinspection PyAbstractClass
@@ -109,7 +69,7 @@ class DobissLight(LightEntity):
             "name": self._name,
         }
 
-    def __init__(self, bus: can.BusABC, o: dict, lock: asyncio.Lock):
+    def __init__(self, bus: can.BusABC, o: dict, lock: asyncio.Lock, prefix: str):
         self._bus = bus
         self._lock = lock
         # Unpack some config values
@@ -128,6 +88,7 @@ class DobissLight(LightEntity):
         self._event_update = asyncio.Event()
         # Logger
         self._log = _LOGGER.getChild(self._name)
+        self._attr_unique_id = f"dobiss.{prefix}.{self._module}.{self._relay}"
 
     @property
     def is_on(self) -> bool:
@@ -141,7 +102,7 @@ class DobissLight(LightEntity):
 
     @property
     def unique_id(self) -> str:
-        return f"dobiss.{self._module}.{self._relay}"
+        return self._attr_unique_id
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         self._bus.send(can.Message(arbitration_id=self._set_id, data=self._bytes_on, is_extended_id=True), timeout=.1)
