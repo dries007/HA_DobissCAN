@@ -8,8 +8,8 @@
     "@dries007"
   ],
   "requirements": [
-    "python-can~=3.3"
+    "python-can~=4.0.0"
   ],
   "iot_class": "local_push",
-  "version": "0.2.0"
+  "version": "0.3.0"
 }
