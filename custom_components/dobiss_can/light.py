@@ -98,7 +98,7 @@ class DobissLight(LightEntity):
     def is_on(self, value: bool):
         self._is_on = value
         # This call makes HA update the internal state after getting an update via CAN.
-        self.hass.async_add_job(self.async_update_ha_state)
+        self.async_write_ha_state()
 
     @property
     def unique_id(self) -> str:
