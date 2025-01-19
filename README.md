@@ -20,8 +20,9 @@ This is the pinout for an RJ12 cable:
 4. GND (don't forget!)
 5. CAN L
 
-You should hold the cable like this to count:
+This is how to count:
 
+![Pinout of the RJ12 cable](https://github.com/tvdbroeck/HA_DobissCAN/blob/main/pinout%20RJ12.png)
 
 In my setup, I connected these via an unshielded hand twisted cable to the CAN screw terminals of a RS485/CAN HAT from Waveshare + I tried to ground to one of the GND pins of the Pi's GPIO connector.
 
@@ -43,6 +44,7 @@ The Dobiss protocol is explained more [here](https://gist.github.com/dries007/43
 This is an addon for Home Assistant in the form of a custom component that can be installed via [HACS](https://hacs.xyz/).
 
 If you are using a Home Assistant Operating System installation and you are using a CAN hat that requires you add lines to your /boot/config.txt, you may need to [log into the OS](https://developers.home-assistant.io/docs/operating-system/debugging/).
+
 The lines that need to be added to the config.txt file can be found on the website of the manufacturer of your CAN adapter. If you are using the Waveshare RS485 CAN HAT, for example, the following lines need to be added:
 ```
 dtparam=spi=on
