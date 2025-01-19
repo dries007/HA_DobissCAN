@@ -22,7 +22,7 @@ This is the pinout for an RJ12 cable:
 
 This is how to count:
 
-![Pinout of the RJ12 cable](https://github.com/tvdbroeck/HA_DobissCAN/blob/main/pinout%20RJ12.png)
+![Pinout of the RJ12 cable](https://github.com/tvdbroeck/HA_DobissCAN/blob/patch-1/pinout%20RJ12.png)
 
 In my setup, I connected these via an unshielded hand twisted cable to the CAN screw terminals of a RS485/CAN HAT from Waveshare + I tried to ground to one of the GND pins of the Pi's GPIO connector.
 
