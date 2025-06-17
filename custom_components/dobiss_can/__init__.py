@@ -4,6 +4,7 @@ Dobiss CAN Bus Integration
 import logging
 
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
 from .const import *
@@ -20,5 +21,5 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     hass.data[DOMAIN][entry.entry_id] = entry.data
 
     # Forward the setup to the sensor platform.
-    hass.async_create_task(hass.config_entries.async_forward_entry_setups(entry, "light"))
+    hass.async_create_task(hass.config_entries.async_forward_entry_setups(entry, (Platform.LIGHT,)))
     return True
