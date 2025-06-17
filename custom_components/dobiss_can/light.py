@@ -4,7 +4,7 @@ Documentation of protocol: https://gist.github.com/dries007/436fcd0549a52f26137b
 The CAN bus must be enabled by the system before this module is loaded.
 systemd-networkd can do this for you, as CAN is a supported network.
 
-Author: Dries007 2021 - 2022
+Author: Dries007 2021 - 2022 - 2025
 Licence: MIT
 """
 import asyncio
