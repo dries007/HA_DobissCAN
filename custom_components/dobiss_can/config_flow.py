@@ -29,31 +29,29 @@ ENTRY = vol.Schema({
 class DobissCANConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """DobissCAN config flow."""
 
+    VERSION = 1
+
     def __init__(self) -> None:
         super().__init__()
-        _LOGGER.warning("DobissCANConfigFlow 2")
-        self.data: Dict[str, Any] = {}
+        self._data: Dict[str, Any] = {}
 
     async def async_step_user(self, user_input=None):
-        _LOGGER.warning("async_step_user %r %r", user_input, self.data)
-
         if user_input is not None:
-            self.data.update(user_input)
-            self.data[CONF_LIGHTS] = []
+            self._data.update(user_input)
+            self._data[CONF_LIGHTS] = []
             return await self.async_step_light()
 
         return self.async_show_form(step_id="user", data_schema=CAN)
 
     async def async_step_light(self, user_input=None):
-        _LOGGER.warning("async_step_light %r %r", user_input, self.data)
-
         if user_input is not None:
+            user_input = dict(user_input)
             cont = user_input.pop("add_another", False)
 
-            self.data[CONF_LIGHTS].append(user_input)
+            self._data[CONF_LIGHTS].append(user_input)
 
             if not cont:
                 # User is done adding lights, create the config entry.
-                return self.async_create_entry(title="Dobiss Custom", data=self.data)
+                return self.async_create_entry(title="Dobiss Custom", data=self._data)
 
         return self.async_show_form(step_id="light", data_schema=ENTRY)
