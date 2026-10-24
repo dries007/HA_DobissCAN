@@ -14,12 +14,17 @@ _LOGGER = logging.getLogger(DOMAIN)
 _LOGGER.setLevel(logging.DEBUG)
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
-    _LOGGER.debug("async_setup_entry2 %r %r", entry, entry.data)
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    _LOGGER.debug("async_setup_entry %r %r", entry, entry.data)
 
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = entry.data
 
-    # Forward the setup to the sensor platform.
-    hass.async_create_task(hass.config_entries.async_forward_entry_setups(entry, (Platform.LIGHT,)))
+    await hass.config_entries.async_forward_entry_setups(entry, (Platform.LIGHT,))
     return True
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    if unloaded := await hass.config_entries.async_unload_platforms(entry, (Platform.LIGHT,)):
+        hass.data[DOMAIN].pop(entry.entry_id, None)
+    return unloaded
