@@ -9,6 +9,7 @@ Licence: MIT
 """
 import asyncio
 import logging
+from datetime import timedelta
 from typing import Any
 
 import can
@@ -23,6 +24,13 @@ from .const import *
 
 _LOGGER = logging.getLogger(DOMAIN)
 _LOGGER.setLevel(logging.DEBUG)
+
+# Status changes are pushed by the modules themselves (0x0002FF01 frames), so polling is only a safety net.
+# HA also polls once when an entity is added, which covers the state after a restart.
+SCAN_INTERVAL = timedelta(minutes=5)
+
+# Key under which the single, shared CAN bus lock is stored in hass.data.
+LOCK_KEY = f"{DOMAIN}_lock"
 
 
 async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
@@ -40,15 +48,22 @@ async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry, asyn
     # Global CAN bus lock, required since the reply to a GET does not include any differentiator.
     # This means we must lock, then send out a GET request.
     # The reply will then only be acked by the entity that holds the lock.
-    # I don't like this, it smells, but it works and IDK how to do it better.
-    lock = asyncio.Lock()
+    # The lock must be shared between ALL config entries, because they all talk on the same physical bus.
+    # A lock per entry lets two entities poll at the same time, and then both accept the same reply.
+    lock = hass.data.setdefault(LOCK_KEY, asyncio.Lock())
 
     entities = [DobissLight(bus, e, lock, config_entry.entry_id) for e in data[CONF_LIGHTS]]
     notifier = can.Notifier(bus, [e.on_can_message_received for e in entities], loop=asyncio.get_running_loop())
     async_add_entities(entities)
 
+    stopped = False
+
     @callback
     def stop(event=None):
+        nonlocal stopped
+        if stopped:
+            return
+        stopped = True
         notifier.stop()
         bus.shutdown()
 
@@ -85,8 +100,6 @@ class DobissLight(LightEntity):
         self._bytes_off: bytes = bytes((self._module, self._relay, 0, 0xFF, 0xFF))
         self._bytes_on: bytes = bytes((self._module, self._relay, 1, 0xFF, 0xFF))
         self._bytes_status: bytes = bytes((self._module, self._relay))
-        # Internal state of light
-        self._is_on: bool = False
         # Internals to do locking & support GET operation
         self._awaiting_update = False
         self._event_update = asyncio.Event()
@@ -110,9 +123,13 @@ class DobissLight(LightEntity):
     def on_can_message_received(self, msg: can.Message):
         if self.hass is None:
             return
+        # Reply to SET, this we can filter because the data contains module and relay.
         if msg.arbitration_id == 0x0002FF01 and msg.data[0] == self._module and msg.data[1] == self._relay:
             self._set_state(msg.data[2] == 1)
+        # Reply to GET, this we can only filter by knowing that we are waiting on an update.
+        # Accept exactly one reply per request, so a late or duplicate reply cannot flip the state.
         if msg.arbitration_id == 0x01FDFF01 and self._awaiting_update:
+            self._awaiting_update = False
             self._set_state(msg.data[0] == 1)
             self._event_update.set()
 
